@@ -20,7 +20,7 @@ find_package(catkin REQUIRED
 option(RAISIM_EXAMPLE "Build example applications." TRUE)
 option(RAISIM_MATLAB "Build a matlab wrapper." FALSE)
 option(RAISIM_PY "Build a python wrapper." FALSE)
-option(RAISIM_DOC "Build a raisim documentation. You can find the latest doc in raisim.com." TRUE)
+option(RAISIM_DOC "Build a raisim documentation. You can find the latest doc in raisim.com." FALSE)
 
 #if (UNIX AND NOT APPLE AND NOT ANDROID AND NOT WEBGL AND NOT WIN32)
     set(RAISIM_OS linux)  
