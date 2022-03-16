@@ -23,7 +23,7 @@ option(RAISIM_PY "Build a python wrapper." FALSE)
 option(RAISIM_DOC "Build a raisim documentation. You can find the latest doc in raisim.com." FALSE)
 
 #if (UNIX AND NOT APPLE AND NOT ANDROID AND NOT WEBGL AND NOT WIN32)
-    set(RAISIM_OS linux)  
+    set(RAISIM_OS linux)
     list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/raisim/${RAISIM_OS})
 #elseif(APPLE)
 #    execute_process(COMMAND sysctl -q hw.optional.arm64
@@ -125,6 +125,17 @@ install(
         DESTINATION
         ${CMAKE_INSTALL_PREFIX}
 )
+
+install(TARGETS raisim
+    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
+
+# Установить библиотеку в cmake install директорию
+#install(FILES ${qpOASES_CXX_LIBRARY}
+#  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#)
 
 install(FILES package.xml DESTINATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}")
 

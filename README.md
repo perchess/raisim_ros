@@ -1,25 +1,31 @@
-# RAISIM, A PHYSICS ENGINE FOR ROBOTICS AND AI RESEARCH (v1.10)
+# RAISIM, A PHYSICS ENGINE FOR ROBOTICS AND AI RESEARCH (v1.10.1)
 
-Click to watch the video
+## Build
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/CN0ah5-OWik/0.jpg)](https://www.youtube.com/watch?v=CN0ah5-OWik)
+```
+cd <path_to_ws>/catkin_ws
+mkdir src
+catkin config --install
+cd src
+git clone <this_repo_url>
+catkin build
+```
 
+## Launch
+```
+roslaunch raisim unity.launch
+```
+
+It's forked from [Git](https://github.com/raisimTech/raisimLib)
 
 Documentation available on the [RaiSim Tech website](http://raisim.com).
 
 ## License
 
 You should get a valid license and an activation key from the [RaiSim Tech website](http://raisim.com) to use RaiSim.
-Post issues to this github repo for questions. 
+Post issues to this github repo for questions.
 Send an email to info.raisim@gmail.com for any special inquiry.
 
 ## Supported OS
 
 MAC (including m1), Linux, Windows.
-
-
-
-
-
-
-
