@@ -112,21 +112,29 @@ set_target_properties(raisim::raisim PROPERTIES
 
 
 
-install(
-        DIRECTORY
-        ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/include
-        DESTINATION
-        ${CMAKE_INSTALL_PREFIX}
+# install(
+#         DIRECTORY
+#         ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/include
+#         DESTINATION
+#         ${CMAKE_INSTALL_PREFIX}
+# )
+#
+# install(
+#         DIRECTORY
+#         ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/lib/
+#         DESTINATION
+#         /home/den/c_workspaces/raisim_pure_ws/devel/.private/raisim
+# )
+file(
+  COPY
+  ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/lib/
+  DESTINATION
+  /home/den/c_workspaces/raisim_pure_ws/devel/.private/raisim
 )
 
-install(
-        DIRECTORY
-        "${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/lib"
-        DESTINATION
-        ${CMAKE_INSTALL_PREFIX}
-)
-
-# install(TARGETS raisim::raisim
+message ("FROM " ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/lib/)
+message ("TO " /home/den/c_workspaces/raisim_pure_ws/devel/.private/raisim)
+# install(TARGETS raisim
 #     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #     RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
