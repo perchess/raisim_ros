@@ -266,6 +266,7 @@ class Joint {
   double damping = 0.0, friction = 0.0;
   double stiffness = 0.;
   double rotor_inertia = 0.;
+  double velocity_limit = 0.;
   Vec<4> springMount;
   double jointRef = 0.;
   std::string name;
@@ -278,7 +279,7 @@ class CoordinateFrame {
   size_t parentId, currentBodyId;
   std::string name; // name of the joint
   std::string parentName; // name of the parent body
-  std::string bodyName; // name of the body attached to the joint
+  std::string bodyName; // name of the urdf link attached to the joint
   bool isChild =
       false; // child is the first body after movable joint. All fixed bodies attached to a child is not a child
   Joint::Type jointType; // type of the associated joint

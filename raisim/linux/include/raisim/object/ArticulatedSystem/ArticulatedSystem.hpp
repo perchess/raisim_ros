@@ -77,6 +77,9 @@ class ArticulatedSystem : public Object {
   struct SpringElement {
     SpringElement() { q_ref.setZero(); }
 
+    void setSpringMount (const Eigen::Vector4d& qRef) { q_ref = qRef; }
+    Eigen::Vector4d getSpringMount () { return q_ref.e(); }
+
     /// the spring connects this body and its parent
     size_t childBodyId = 0;
     /// spring stiffness
@@ -341,12 +344,12 @@ class ArticulatedSystem : public Object {
   /**
    * set the generalized velocity
    * @param[in] jointVel the generalized velocity*/
-  void setGeneralizedVelocity(const Eigen::VectorXd &jointVel) { gv_ = jointVel; }
+  void setGeneralizedVelocity(const Eigen::VectorXd &jointVel) { gv_ = jointVel; updateKinematics();}
 
   /**
    * set the generalized velocity
    * @param[in] jointVel the generalized velocity*/
-  void setGeneralizedVelocity(const raisim::VecDyn &jointVel) { gv_ = jointVel; }
+  void setGeneralizedVelocity(const raisim::VecDyn &jointVel) { gv_ = jointVel; updateKinematics();}
 
   /**
    * set the generalized coordinsate of each joint in order.
@@ -552,6 +555,29 @@ class ArticulatedSystem : public Object {
 
   /**
    * Refer to Object/ArticulatedSystem/Kinematics/Frame in the manual for details
+   * @param[in] name name of the urdf link that is a child of the joint
+   * @return the coordinate frame of the given link name */
+  CoordinateFrame &getFrameByLinkName(const std::string &name) {
+    return *std::find_if(frameOfInterest_.begin(), frameOfInterest_.end(),
+                        [name](const raisim::CoordinateFrame &ref) { return ref.bodyName == name; });
+  }
+  const CoordinateFrame &getFrameByLinkName(const std::string &name) const {
+    return *std::find_if(frameOfInterest_.begin(), frameOfInterest_.end(),
+                         [name](const raisim::CoordinateFrame &ref) { return ref.bodyName == name; });
+  }
+
+  /**
+   * Refer to Object/ArticulatedSystem/Kinematics/Frame in the manual for details
+   * @param[in] name name of the urdf link that is a child of the joint
+   * @return the coordinate frame index of the given link name */
+  size_t getFrameIdxByLinkName(const std::string &name) const {
+    return std::find_if(frameOfInterest_.begin(), frameOfInterest_.end(),
+                        [name](const raisim::CoordinateFrame &ref) { return ref.bodyName == name; })
+                        - frameOfInterest_.begin();
+  }
+
+  /**
+   * Refer to Object/ArticulatedSystem/Kinematics/Frame in the manual for details
    * @param[in] idx index of the frame
    * @return the coordinate frame of the given index */
   CoordinateFrame &getFrameByIdx(size_t idx) { return frameOfInterest_[idx]; }
@@ -576,9 +602,16 @@ class ArticulatedSystem : public Object {
    * @param[out] point_W the position of the frame expressed in the world frame */
   void getFramePosition(size_t frameId, Vec<3> &point_W) const;
 
+
   /**
    * @param[in] frameId the frame id which can be obtained by getFrameIdxByName()
-   * @param[out] orientation_W the position of the frame relative to the world frame */
+   * @param[in] localPos local position in the specified frame
+   * @param[out] point_W the position expressed in the world frame */
+  void getPositionInFrame(size_t frameId, const Vec<3> &localPos, Vec<3> &point_W) const;
+
+    /**
+     * @param[in] frameId the frame id which can be obtained by getFrameIdxByName()
+     * @param[out] orientation_W the position of the frame relative to the world frame */
   void getFrameOrientation(size_t frameId, Mat<3, 3> &orientation_W) const;
 
   /**
@@ -673,8 +706,27 @@ class ArticulatedSystem : public Object {
 
   /**
    * @param[in] bodyIdx the body index. Note that body index and the joint index are the same because every body has one parent joint. It can be retrieved by getBodyIdx()
+   * @param[in] frame the frame in which the position of the point is expressed in
+   * @param[in] point the point expressed in the world frame. If you want to use a point expressed in the body frame, use getDenseFrameJacobian()
+   * @param[out] jaco the positional Jacobian. v = J * u. v is the linear velocity expressed in the world frame and u is the generalized velocity */
+  void getSparseJacobian(size_t bodyIdx, Frame frame, const Vec<3> &point, SparseJacobian &jaco) const;
+
+  /**
+   * @param[in] bodyIdx the body index. Note that body index and the joint index are the same because every body has one parent joint. It can be retrieved by getBodyIdx()
    * @param[out] jaco the rotational Jacobian. omega = J * u. omgea is the angular velocity expressed in the world frame and u is the generalized velocity */
   void getSparseRotationalJacobian(size_t bodyIdx, SparseJacobian &jaco) const;
+
+  /**
+   * @param[in] bodyIdx the body index. Note that body index and the joint index are the same because every body has one parent joint. It can be retrieved by getBodyIdx()
+   * @param[in] frame the frame in which the position of the point is expressed
+   * @param[in] point the position of the point of interest
+   * @param[out] jaco the time derivative of the positional Jacobian. a = dJ * u + J * du. a is the linear acceleration expressed in the world frame, u is the generalized velocity and d denotes the time derivative*/
+  void getTimeDerivativeOfSparseJacobian(size_t bodyIdx, Frame frame, const Vec<3> &point, SparseJacobian &jaco) const;
+
+  /**
+   * @param[in] bodyIdx the body index. Note that body index and the joint index are the same because every body has one parent joint. It can be retrieved by getBodyIdx()
+   * @param[out] jaco the rotational Jacobian. alpha = dJ * u + J * du. alpha is the angular acceleration expressed in the world frame, u is the generalized velocity and d denotes the time derivative*/
+  void getTimeDerivativeOfSparseRotationalJacobian(size_t bodyIdx, SparseJacobian &jaco) const;
 
   /**
    * @param[in] sparseJaco sparse Jacobian (either positional or rotational)
@@ -762,6 +814,14 @@ class ArticulatedSystem : public Object {
    * @param[in] posInBodyFrame the position of the point of interest expressed in the body frame
    * @param[out] pointVel the velocity of the point expressed in the world frame */
   void getVelocity(size_t bodyIdx, const Vec<3> &posInBodyFrame, Vec<3> &pointVel) const;
+
+  /**
+   * @param[in] bodyIdx the body index. it can be retrieved by getBodyIdx()
+   * @param[in] frameOfPos the frame in which the provided position is expressed
+   * @param[in] pos the position of the point of interest
+   * @param[in] frameOfVel the frame in which the computed velocity is expressed
+   * @param[out] pointVel the velocity of the point expressed in the world frame */
+  void getVelocity(size_t bodyIdx, Frame frameOfPos, const Vec<3> &pos, Frame frameOfVel, Vec<3> &pointVel) const;
 
   /**
    * returns the index of the body
@@ -920,7 +980,8 @@ class ArticulatedSystem : public Object {
    * @param[in] force the applied force in the world frame*/
   void setExternalForce(const std::string &frame_name, const Vec<3> &force) {
     auto &frame = getFrameByName(frame_name);
-    setExternalForce(frame.parentId, Frame::WORLD_FRAME, force, Frame::BODY_FRAME, frame.position);
+    Vec<3> force_b; force_b = frame.orientation * force;
+    setExternalForce(frame.parentId, Frame::BODY_FRAME, force_b, Frame::BODY_FRAME, frame.position);
   }
 
   /**
@@ -930,6 +991,18 @@ class ArticulatedSystem : public Object {
    * @param[in] bodyIdx the body index. it can be retrieved by getBodyIdx()
    * @param[in] torque_in_world_frame the applied torque expressed in the world frame */
   void setExternalTorque(size_t bodyIdx, const Vec<3> &torque_in_world_frame) final;
+
+  /**
+   * set external torque.
+   * The external torque is applied for a single time step only.
+   * You have to apply the force for every time step if you want persistent torque
+   * @param[in] bodyIdx the body index. it can be retrieved by getBodyIdx()
+   * @param[in] torque_in_body_frame the applied torque expressed in the body frame */
+  void setExternalTorqueInBodyFrame(size_t bodyIdx, const Vec<3> &torque_in_body_frame) {
+    Vec<3> torque_in_world_frame;
+    matvecmul(rot_WB[bodyIdx], torque_in_body_frame, torque_in_world_frame);
+    setExternalTorque(bodyIdx, torque_in_world_frame);
+  }
 
   /**
    * returns the contact point velocity. The contactId is the order in the vector from Object::getContacts()
@@ -1371,7 +1444,6 @@ class ArticulatedSystem : public Object {
     externalForceAndTorqueJaco_.resize(0);
   }
 
-
   /**
    * @param[in] spring Additional spring elements for joints */
   void addSpring(const SpringElement &spring) { springs_.push_back(spring); }
@@ -1381,8 +1453,15 @@ class ArticulatedSystem : public Object {
   std::vector<SpringElement> &getSprings() { return springs_; }
   const std::vector<SpringElement> &getSprings() const { return springs_; }
 
+  /**
+   *
+   * @return parent parent[i] is a parent body id of the i^th body
+   */
+  const std::vector<size_t>& getParentVector() const { return parent; }
+
   // not recommended for users. only for developers
   void addConstraints(const std::vector<PinConstraintDefinition>& pinDef);
+  void initializeConstraints();
 
  protected:
 
@@ -1414,6 +1493,10 @@ class ArticulatedSystem : public Object {
   void addContactPointVel(size_t pointId, Vec<3> &vel) final;
 
   void subContactPointVel(size_t pointId, Vec<3> &vel) final;
+
+  void addContactPointVel2(size_t pointId, Vec<3> &vel) final;
+
+  void subContactPointVel2(size_t pointId, Vec<3> &vel) final;
 
   void updateGenVelWithImpulse(size_t pointId, const Vec<3> &imp) final;
 
@@ -1517,7 +1600,7 @@ class ArticulatedSystem : public Object {
   std::vector<MatDyn> MinvJT_T;
   std::vector<VecDyn> j_MinvJT_T1D;
   VecDyn tauStar_, tau_, tauFF_;
-  VecDyn tauUpper_, tauLower_; // bounds
+  VecDyn tauUpper_, tauLower_, velLimits_; // bounds
   std::vector<size_t> bodyIdx2GvIdx, bodyIdx2GcIdx;
 
   std::vector<SparseJacobian> J_;
@@ -1570,6 +1653,7 @@ class ArticulatedSystem : public Object {
 
   // constraints
   std::vector<PinConstraint> pinConstraints_;
+  std::vector<PinConstraintDefinition> pinDef_;
 
   /// ABA
   Mat<6, 6> MaInv_base;

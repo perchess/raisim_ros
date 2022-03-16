@@ -1,5 +1,6 @@
 from ruamel.yaml import YAML, dump, RoundTripDumper
-from raisimGymTorch.env.bin import rsg_anymal
+from raisimGymTorch.env.bin.rsg_anymal import RaisimGymEnv
+from raisimGymTorch.env.bin.rsg_anymal import NormalSampler
 from raisimGymTorch.env.RaisimGymVecEnv import RaisimGymVecEnv as VecEnv
 from raisimGymTorch.helper.raisim_gym_helper import ConfigurationSaver, load_param, tensorboard_launcher
 import os
@@ -36,11 +37,12 @@ home_path = task_path + "/../../../../.."
 cfg = YAML().load(open(task_path + "/cfg.yaml", 'r'))
 
 # create environment from the configuration file
-env = VecEnv(rsg_anymal.RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)), cfg['environment'])
+env = VecEnv(RaisimGymEnv(home_path + "/rsc", dump(cfg['environment'], Dumper=RoundTripDumper)))
 
 # shortcuts
 ob_dim = env.num_obs
 act_dim = env.num_acts
+num_threads = cfg['environment']['num_threads']
 
 # Training
 n_steps = math.floor(cfg['environment']['max_time'] / cfg['environment']['control_dt'])
@@ -49,7 +51,11 @@ total_steps = n_steps * env.num_envs
 avg_rewards = []
 
 actor = ppo_module.Actor(ppo_module.MLP(cfg['architecture']['policy_net'], nn.LeakyReLU, ob_dim, act_dim),
-                         ppo_module.MultivariateGaussianDiagonalCovariance(act_dim, 1.0),
+                         ppo_module.MultivariateGaussianDiagonalCovariance(act_dim,
+                                                                           env.num_envs,
+                                                                           1.0,
+                                                                           NormalSampler(act_dim),
+                                                                           cfg['seed']),
                          device)
 critic = ppo_module.Critic(ppo_module.MLP(cfg['architecture']['value_net'], nn.LeakyReLU, ob_dim, 1),
                            device)
@@ -97,14 +103,15 @@ for update in range(1000000):
         env.start_video_recording(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "policy_"+str(update)+'.mp4')
 
         for step in range(n_steps*2):
-            frame_start = time.time()
-            obs = env.observe(False)
-            action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
-            reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
-            frame_end = time.time()
-            wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
-            if wait_time > 0.:
-                time.sleep(wait_time)
+            with torch.no_grad():
+                frame_start = time.time()
+                obs = env.observe(False)
+                action_ll = loaded_graph.architecture(torch.from_numpy(obs).cpu())
+                reward_ll, dones = env.step(action_ll.cpu().detach().numpy())
+                frame_end = time.time()
+                wait_time = cfg['environment']['control_dt'] - (frame_end-frame_start)
+                if wait_time > 0.:
+                    time.sleep(wait_time)
 
         env.stop_video_recording()
         env.turn_off_visualization()
@@ -115,11 +122,11 @@ for update in range(1000000):
     # actual training
     for step in range(n_steps):
         obs = env.observe()
-        action = ppo.observe(obs)
+        action = ppo.act(obs)
         reward, dones = env.step(action)
         ppo.step(value_obs=obs, rews=reward, dones=dones)
-        done_sum = done_sum + sum(dones)
-        reward_ll_sum = reward_ll_sum + sum(reward)
+        done_sum = done_sum + np.sum(dones)
+        reward_ll_sum = reward_ll_sum + np.sum(reward)
 
     # take st step to get value obs
     obs = env.observe()
@@ -128,6 +135,7 @@ for update in range(1000000):
     average_dones = done_sum / total_steps
     avg_rewards.append(average_ll_performance)
 
+    actor.update()
     actor.distribution.enforce_minimum_std((torch.ones(12)*0.2).to(device))
 
     # curriculum update. Implement it in Environment.hpp
@@ -143,6 +151,4 @@ for update in range(1000000):
     print('{:<40} {:>6}'.format("fps: ", '{:6.0f}'.format(total_steps / (end - start))))
     print('{:<40} {:>6}'.format("real time factor: ", '{:6.0f}'.format(total_steps / (end - start)
                                                                        * cfg['environment']['control_dt'])))
-    print('std: ')
-    print(np.exp(actor.distribution.std.cpu().detach().numpy()))
     print('----------------------------------------------------\n')
