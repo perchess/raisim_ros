@@ -6,6 +6,8 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 # Include CMake helper modules
 include(GNUInstallDirs)
 
+find_package(Eigen3)
+
 # Add some ROS
 find_package(catkin REQUIRED
  roscpp
@@ -14,50 +16,15 @@ find_package(catkin REQUIRED
  )
 
 
-# ROS
-
 # Build options
-option(RAISIM_EXAMPLE "Build example applications." TRUE)
+option(RAISIM_EXAMPLE "Build example applications." FALSE)
 option(RAISIM_MATLAB "Build a matlab wrapper." FALSE)
 option(RAISIM_PY "Build a python wrapper." FALSE)
 option(RAISIM_DOC "Build a raisim documentation. You can find the latest doc in raisim.com." FALSE)
 
-#if (UNIX AND NOT APPLE AND NOT ANDROID AND NOT WEBGL AND NOT WIN32)
-    set(RAISIM_OS linux)
-    list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/raisim/${RAISIM_OS})
-#elseif(APPLE)
-#    execute_process(COMMAND sysctl -q hw.optional.arm64
-#            OUTPUT_VARIABLE _sysctl_stdout
-#            ERROR_VARIABLE _sysctl_stderr
-#            RESULT_VARIABLE _sysctl_result
-#            )
-#    if(_sysctl_result EQUAL 0 AND _sysctl_stdout MATCHES "hw.optional.arm64: 1")
-#        set(RAISIM_OS m1)
-#    else()
-#        set(RAISIM_OS mac)
-#    endif()
-#    list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/raisim/${RAISIM_OS})
-#elseif(WIN32)
-#    set(RAISIM_OS win32)
-#    list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/raisim/${RAISIM_OS}/mt_release)
-#    list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/raisim/${RAISIM_OS}/mt_debug)
-#    list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/thirdParty/Eigen3)
-#endif()
 
-#==
-# Package installation
-#==
-#if(WIN32)
-#    set(RAISIM_BIN_DIR ${RAISIM_OS}/mt_release)
-#    install(
-#        DIRECTORY
-#        ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/bin
-#        DESTINATION
-#        ${CMAKE_INSTALL_PREFIX}
-#    )
-#else()
-    set(RAISIM_BIN_DIR ${RAISIM_OS})
-#endif()
+set(RAISIM_OS linux)
+set(RAISIM_BIN_DIR ${RAISIM_OS})
 
 
 catkin_package(
@@ -110,21 +77,7 @@ set_target_properties(raisim::raisim PROPERTIES
   INTERFACE_LINK_LIBRARIES "raisim::raisimPng;raisim::raisimODE;raisim::raisimMine;${catkin_LIBRARIES}"
 )
 
-
-
-# install(
-#         DIRECTORY
-#         ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/include
-#         DESTINATION
-#         ${CMAKE_INSTALL_PREFIX}
-# )
-#
-# install(
-#         DIRECTORY
-#         ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/lib/
-#         DESTINATION
-#         /home/den/c_workspaces/raisim_pure_ws/devel/.private/raisim
-# )
+# Install raisim lib
 file(
   COPY
   ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/lib/
@@ -132,20 +85,6 @@ file(
   /home/den/c_workspaces/raisim_pure_ws/devel/.private/raisim
 )
 
-message ("FROM " ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/lib/)
-message ("TO " /home/den/c_workspaces/raisim_pure_ws/devel/.private/raisim)
-# install(TARGETS raisim
-#     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#     RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-# )
-
-# Установить библиотеку в cmake install директорию
-#install(FILES ${qpOASES_CXX_LIBRARY}
-#  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#)
-
-install(FILES package.xml DESTINATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}")
 
 if(RAISIM_ALL)
     set(RAISIM_MATLAB TRUE)
@@ -161,6 +100,10 @@ endif()
 if(RAISIM_PY)
 #    add_subdirectory(thirdParty/pybind11)
 #    add_subdirectory(raisimPy)
+endif()
+
+if(RAISIM_EXAMPLE)
+    add_subdirectory(examples)
 endif()
 
 if(RAISIM_DOC)
