@@ -1,5 +1,4 @@
-# ROS WRAPPER FOR
-# RAISIM, A PHYSICS ENGINE FOR ROBOTICS AND AI RESEARCH (v1.10.1)
+# ROS WRAPPER FOR RAISIM
 
 ## Build
 
@@ -13,8 +12,12 @@ catkin build
 ```
 
 ## Launch
+Unity:
 ```
 roslaunch raisim unity.launch
+```
+Opengl:
+```
 roslaunch raisim opengl.launch
 ```
 
