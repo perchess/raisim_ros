@@ -82,7 +82,7 @@ file(
   COPY
   ${CMAKE_CURRENT_LIST_DIR}/raisim/${RAISIM_BIN_DIR}/lib/
   DESTINATION
-  /home/den/c_workspaces/raisim_pure_ws/devel/.private/raisim
+  ${CATKIN_DEVEL_PREFIX}
 )
 
 
