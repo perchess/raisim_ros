@@ -17,10 +17,10 @@ find_package(catkin REQUIRED
 
 
 # Build options
-option(RAISIM_EXAMPLE "Build example applications." FALSE)
-option(RAISIM_MATLAB "Build a matlab wrapper." FALSE)
-option(RAISIM_PY "Build a python wrapper." FALSE)
-option(RAISIM_DOC "Build a raisim documentation. You can find the latest doc in raisim.com." FALSE)
+option(RAISIM_EXAMPLE "Build example applications." ON)
+option(RAISIM_MATLAB "Build a matlab wrapper." OFF)
+option(RAISIM_PY "Build a python wrapper." OFF)
+option(RAISIM_DOC "Build a raisim documentation. You can find the latest doc in raisim.com." OFF)
 
 
 set(RAISIM_OS linux)
@@ -103,7 +103,8 @@ if(RAISIM_PY)
 endif()
 
 if(RAISIM_EXAMPLE)
-    add_subdirectory(examples)
+  message("Building examples ...")
+  add_subdirectory(examples)
 endif()
 
 if(RAISIM_DOC)
