@@ -11,6 +11,20 @@ catkin config --cmake-args -DCMAKE_BUILD_TYPE=Release
 catkin build
 ```
 
+## Test
+Avaliable examples:
+
+- anymals
+- kinematicObject
+- material
+- materialStaticFriction
+- meshes
+- rayDemo2
+- visualObjects
+```
+rosrun raisim <example_name>
+```
+
 ## Launch
 Unity:
 ```
